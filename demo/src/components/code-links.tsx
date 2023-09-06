@@ -2,7 +2,7 @@ import { ListItem, ListItemLabel } from 'baseui/list'
 import { BiLogoTypescript } from 'react-icons/bi'
 import { StyledLink } from 'baseui/link'
 
-type CodeLinksProps = {
+export type CodeLinksProps = {
   links: { name: string; url: string }[]
 }
 

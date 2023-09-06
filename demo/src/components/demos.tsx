@@ -6,13 +6,15 @@ import { H1 } from './h1'
 import { DemoMLP } from '../demos/demo-mlp'
 import { DemoNeuron } from '../demos/demo-neuron'
 import { DemoValue } from '../demos/demo-value'
-import { DemoMLPTraining } from '../demos/MLP/demo-mlp-training'
+import { DemoMLPTraining } from '../demos/MLPTraining/demo-mlp-training'
+import { DemoMMWordPlot } from '../demos/WordPlot/demo-mm-wordplot'
 
 enum TabKey {
   Value = 'value',
   Neuron = 'neuron',
   MLP = 'mlp',
   Training = 'training',
+  WordPlot = 'wordplot'
 }
 
 type TabConfig = { title: string; content: React.ReactNode }
@@ -22,6 +24,7 @@ const TabsMap: Map<TabKey, TabConfig> = new Map([
   [TabKey.Neuron, { title: 'Neuron', content: <DemoNeuron /> }],
   [TabKey.MLP, { title: 'MLP', content: <DemoMLP /> }],
   [TabKey.Training, { title: 'MLP Training', content: <DemoMLPTraining /> }],
+  [TabKey.WordPlot, { title: 'WordPlot', content: <DemoMMWordPlot />}],
 ])
 
 export function Demos() {
