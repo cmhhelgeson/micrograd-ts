@@ -44,9 +44,16 @@ const bluesScale: number[][] = [
 const drawGrid = (context: CanvasRenderingContext2D) => {
   const gridCellWidth = context.canvas.width / 28;
   const gridCellHeight = context.canvas.height / 28;
+  context.clearRect(0, 0, context.canvas.width, context.canvas.height);
   for (let i = 0; i < 28; i++) {
-    context.font = '20px serif'
-    context.fillText(letters[i], i * gridCellWidth, gridCellHeight / 2);
+    for (let j = 0; j < 28; j++) {
+      context.fillStyle = 'rgba(0, 0, 255, 0.5)'
+      context.fillRect(j * gridCellWidth, i * gridCellHeight, gridCellWidth, gridCellHeight)
+      context.font = '14px Arial'
+      context.textAlign = 'center'
+      context.fillStyle = 'black'
+      context.fillText(`${letters[i]}${letters[j]}`, j * gridCellWidth + 10, gridCellHeight / 2 + (i * gridCellHeight));
+    }
   }
 }
 
@@ -180,7 +187,7 @@ export const DemoMMWordPlot = () => {
     <H2>{`Word Plot ${showProbs ? '(Probabilities)' : '(Occurrences)'}`}</H2>
       <Block>
         <Block position='relative' width="100%" overflow='auto'>
-          <canvas id="wordplot_canvas" width={28 * 28 * 2} height={800} ref={canvasRef}></canvas>
+          <canvas id="wordplot_canvas" width={28 * 28 * 2} height={1000} ref={canvasRef}></canvas>
         </Block>
         <Block className={styles.wordplot_grid}>
           {letters.map((l1, idx) => {
