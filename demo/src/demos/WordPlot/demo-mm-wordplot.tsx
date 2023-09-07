@@ -39,89 +39,108 @@ const bluesScale: number[][] = [
   [8, 48, 107]     //1.0
 ];
 
+
+
+const drawGrid = (context: CanvasRenderingContext2D) => {
+  const gridCellWidth = context.canvas.width / 28;
+  const gridCellHeight = context.canvas.height / 28;
+  for (let i = 0; i < 28; i++) {
+    context.font = '20px serif'
+    context.fillText(letters[i], i * gridCellWidth, gridCellHeight / 2);
+  }
+}
+
+
+
+
+const Canvas2DInit = async (canvas: HTMLCanvasElement, pageState: {active: boolean}, wordsPerFrame: number) => {
+  if (!pageState.active) {
+    return;
+  }
+  const context = canvas.getContext("2d") as CanvasRenderingContext2D;
+  const devicePixelRatio = window.devicePixelRatio || 1;
+  canvas.width = canvas.clientWidth * devicePixelRatio;
+  canvas.height = canvas.clientHeight * devicePixelRatio;
+  
+
+  let words: string[] 
+  {
+    await fetch('/names.txt').then((res) => {
+      return res.text()
+    }).then((data) => {
+      words = data.split('\n')
+    })
+  };
+
+  let wordIndex = 0;
+  let bigramMap = new Map<string, number>();
+  const runoff = words.length % wordsPerFrame;
+  const preRunoffIterations = Math.floor(words.length / wordsPerFrame);
+
+  let currentIteration = 0;
+
+  async function frame() {
+    const start = currentIteration * wordsPerFrame;
+    const end = currentIteration + 1 > preRunoffIterations ? (currentIteration + 1) * wordsPerFrame : start + runoff;
+    for (let i = start; i < end; i++) {
+      context.font = '48px serif'
+      context.fillText(`${words[wordIndex]}}`, 10, 50);
+      if (wordIndex !== words.length - 1) {
+        wordIndex++;
+      }
+    }
+    drawGrid(context);
+    requestAnimationFrame(frame);
+  }
+  requestAnimationFrame(frame);
+}
+
 export const DemoMMWordPlot = () => {
 
   const [showProbs, setShowProbs] = React.useState<boolean>(false);
   const [test, setTest] = React.useState<number>(0);
-  const 
+  const words = React.useRef<string[]>([]);
+  
+  const bigramMap = React.useRef<Map<string, number>>(new Map());
+  const [testState, setTestState] = React.useState(0);
+
+
+  const canvasRef = React.useRef<HTMLCanvasElement | null>(null);
+
 
   React.useEffect(() => {
-    const adapter = await navigator.gpu.requestAdapter().catch(() => console.log('Adapter not found'));
-    const device = await adapter.requestDevice().catch(() => console.log('Device not found'));
-    if (device) {
-      fetch('/names.txt').then((res) => {
-        return res.text()
-      }).then((data) => {
-        const charCodes = new Uint32Array([
-          ...data.split('\n').join('.').split('').map(char => char.charCodeAt(0))
-        ]);
-
-        const input = device.createBuffer({
-          size: Uint32Array.BYTES_PER_ELEMENT * charCodes.length,
-          usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST
-        })
-
-        device.queue.writeBuffer(input, 0, charCodes);
-
-        const output = device.createBuffer({
-          size: Uint32Array.BYTES_PER_ELEMENT * 27 * 27,
-          usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_SRC,
-        })
-
-        const stagingBuffer = device.createBuffer({
-          size: Uint32Array.BYTES_PER_ELEMENT * 27 * 27,
-          usage: GPUBufferUsage.MAP_READ | GPUBufferUsage.COPY_DST,
-        });
-
-        const uniformsBuffer = device.createBuffer({
-          size: Uint32Array.BYTES_PER_ELEMENT * 1,
-          usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST
-        })
-
-        const bgDescript = createBindGroupDescriptor(
-          [0, 1, 2],
-          [GPUShaderStage.COMPUTE, GPUShaderStage.COMPUTE, GPUShaderStage.COMPUTE],
-          ['buffer', 'buffer', 'buffer'],
-          [{ type: 'read-only-storage' }, { type: 'storage' }, { type: 'uniform' }],
-          [
-            [
-              { buffer: input },
-              { buffer: output },
-              { buffer: uniformsBuffer },
-            ],
-          ],
-          'WordPlot',
-          device
-        );
-
-        const pipeline = device.createComputePipeline({
-          layout: device.createPipelineLayout({
-            bindGroupLayouts: [bgDescript.bindGroupLayout],
-          }),
-          compute: {
-            module: device.createShaderModule({
-              code: WordPlotComputeWGSL,
-            }),
-            entryPoint: 'computeMain',
-          },
-        });
-
-        
-        
+    const canvas = canvasRef.current;
+    const pageState = {active: true};
+    try {
+      Canvas2DInit(canvas, pageState);
+    } catch (err) {
+      console.log(err);
     }
-
-
-    fetch('/names.txt').then((res) => {
-      return res.text()
-    }).then((data) => {
-      const words = data.split('\n')
-      for (const word in words) {
-        let chs = ['.', ...word.split(''), '.'];
-        for (let i = 0; i < chs.length - 2)
-        
-      }
-    })
+    return () => {
+      pageState.active = false;
+    }
   }, []);
+
+  React.useEffect(() => {
+    console.log(words.current)
+    if (words.current.length !== 0) {
+      for (const word of words.current) {
+        for (let i = 0; i < word.length - 2; i++) {
+          const ch1: string = word[i];
+          const ch2: string = word[i + 1];
+          const currentGet = bigramMap.current.get(ch1 + ch2);
+          bigramMap.current.set(ch1 + ch2, currentGet === undefined ? 0 : currentGet + 1);
+        }
+      }
+      console.log(bigramMap);
+    }
+  }, [words])
+
+  React.useEffect(() => {
+    console.log(bigramMap);
+
+  }, [bigramMap])
+
 
   return (
     <>
@@ -142,6 +161,8 @@ export const DemoMMWordPlot = () => {
         pretty close to the prediction from the training set.
       </ParagraphMedium>
 
+      <ParagraphMedium>{bigramMap.current.get('ab')}</ParagraphMedium>
+
       <H2>Code Context</H2>
       <CodeLinks
         links={[
@@ -158,6 +179,9 @@ export const DemoMMWordPlot = () => {
 
     <H2>{`Word Plot ${showProbs ? '(Probabilities)' : '(Occurrences)'}`}</H2>
       <Block>
+        <Block position='relative' width="100%" overflow='auto'>
+          <canvas id="wordplot_canvas" width={28 * 28 * 2} height={800} ref={canvasRef}></canvas>
+        </Block>
         <Block className={styles.wordplot_grid}>
           {letters.map((l1, idx) => {
             return letters.map((l2, idx) => {
