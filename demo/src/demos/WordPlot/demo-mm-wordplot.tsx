@@ -41,7 +41,10 @@ const bluesScale: number[][] = [
 
 
 
-const drawGrid = (context: CanvasRenderingContext2D) => {
+const drawGrid = (
+  context: CanvasRenderingContext2D, 
+  bigramMap: Map<string, number>
+) => {
   const gridCellWidth = context.canvas.width / 28;
   const gridCellHeight = context.canvas.height / 28;
   context.clearRect(0, 0, context.canvas.width, context.canvas.height);
@@ -53,6 +56,14 @@ const drawGrid = (context: CanvasRenderingContext2D) => {
       context.textAlign = 'center'
       context.fillStyle = 'black'
       context.fillText(`${letters[i]}${letters[j]}`, j * gridCellWidth + 10, gridCellHeight / 2 + (i * gridCellHeight));
+      const occurr = bigramMap.get(`${letters[i]}${letters[j]}`);
+      const text = occurr === undefined ? '' : occurr.toString();
+      console.log(text);
+      context.fillText(
+        text,
+        j * gridCellWidth + 10, 
+        gridCellHeight + (i * gridCellHeight)
+      );
     }
   }
 }
@@ -80,7 +91,7 @@ const Canvas2DInit = async (canvas: HTMLCanvasElement, pageState: {active: boole
   };
 
   let wordIndex = 0;
-  let bigramMap = new Map<string, number>();
+  const bigramMap = new Map<string, number>();
   const runoff = words.length % wordsPerFrame;
   const preRunoffIterations = Math.floor(words.length / wordsPerFrame);
 
@@ -90,13 +101,16 @@ const Canvas2DInit = async (canvas: HTMLCanvasElement, pageState: {active: boole
     const start = currentIteration * wordsPerFrame;
     const end = currentIteration + 1 > preRunoffIterations ? (currentIteration + 1) * wordsPerFrame : start + runoff;
     for (let i = start; i < end; i++) {
-      context.font = '48px serif'
-      context.fillText(`${words[wordIndex]}}`, 10, 50);
-      if (wordIndex !== words.length - 1) {
-        wordIndex++;
+      const word = words[i];
+      for (let i = 0; i < word.length - 2; i++) {
+        const ch1: string = word[i];
+        const ch2: string = word[i + 1];
+        const currentGet = bigramMap.get(ch1 + ch2);
+        bigramMap.set(ch1 + ch2, currentGet === undefined ? 0 : currentGet + 1);
       }
     }
-    drawGrid(context);
+    console.log(bigramMap)
+    drawGrid(context, bigramMap);
     requestAnimationFrame(frame);
   }
   requestAnimationFrame(frame);
